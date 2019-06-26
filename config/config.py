@@ -8,6 +8,7 @@ class Config:
     SCHEMA_URL = os.getenv('SCHEMA_URL')
     SCHEMA_API_URL = os.getenv('SCHEMA_API_URL')
     SQLALCHEMY_DATABASE_URI = os.getenv('SQLALCHEMY_DATABASE_URI')
+    SQLALCHEMY_TRACK_MODIFICATIONS=False
 
 class DevelopmentConfig(Config):
     DEBUG = True

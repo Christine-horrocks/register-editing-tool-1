@@ -34,7 +34,7 @@ def dynamic_form(schema):
             db.session.add(entry)
             db.session.commit()
             obj = db.session.query(DynamicModel).order_by(DynamicModel.id.desc()).first()
-            return redirect(url_for('frontend.check', schema=schema, row=obj.id))
+            return redirect(url_for('frontend.check', schema=schema, row=obj.uuid))
     else:
         form = form_object()
 
@@ -43,26 +43,51 @@ def dynamic_form(schema):
 
 @frontend.route('/<schema>/<row>/check')
 def check(schema, row):
-    entry = DynamicModel.query.filter_by(id=row).first()
-    print(entry.json_blob)
+    entry = DynamicModel.query.filter_by(uuid=row).first()
+    print(entry)
     title = remove_dashes(schema)
     data_list = convert_ordered_dicts_for_dl(entry.json_blob)
 
     return render_template('check.html', data=data_list, title=title)
 
-@frontend.route('/<schema>/<row>/edit')
+
+@frontend.route('/<schema>/<row>/edit', methods=['GET', 'POST'])
 def edit(schema, row):
     schema = schema
     schema_url = f"{current_app.config['SCHEMA_URL']}/{schema}-schema.json"
     schema_json = requests.get(schema_url).json()
     form_object = formfactory(schema_json)
-    entry = DynamicModel.query.filter_by(id=row).first()
+    entry = DynamicModel.query.filter_by(uuid=row).first()
     data = entry.json_blob
     for k, v in data.items():
         if "date" in k and v is not None:
             data[k] = datetime.datetime.strptime(v, '%Y-%m-%d').date()
     title = "Editing the form"
     form = form_object(**data)
+    if request.method == 'POST':
+        form = form_object(obj=request.form)
+        if form.validate():
+            entry_data = form.data
+            del entry_data['csrf_token']
+            entry.json_blob = json_serialiser(entry_data)
+            db.session.add(entry)
+            db.session.commit()
+            return redirect(url_for('frontend.check', schema=schema, row=row))
 
-    return render_template('dynamicform.html', form=form, schema=schema, title=title)
+    return render_template('edit.html', form=form, schema=schema, title=title, row=row)
 
+
+@frontend.route('/<schema>/<row>/complete')
+def complete(schema, row):
+    entry = DynamicModel.query.filter_by(uuid=row).first()
+    data_list = convert_ordered_dicts_for_dl(entry.json_blob)
+    title = remove_dashes(schema)
+    if entry.status == 'approved':
+        message = 'This entry already exists'
+    else:
+        entry.status = 'approved'
+        db.session.add(entry)
+        db.session.commit()
+        message = "Your entry has been approved"
+
+    return render_template('complete.html', data=data_list, title=title, message=message, schema=schema)

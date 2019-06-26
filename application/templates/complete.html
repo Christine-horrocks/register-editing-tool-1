@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+
+{% block title %}Your entry has been added{% endblock %}
+
+{% block body %}
+
+    <div>
+        <h1 class="govuk-heading-xl">{{ title }}</h1>
+    </div>
+
+    <p class="govuk-body">{{  message }}</p>
+
+    <dl class="govuk-summary-list">
+        {% for data_item in data %}
+        <div class="govuk-summary-list__row">
+            <dt class="govuk-summary-list__key">
+                {{ data_item[0]}}
+            </dt>
+            <dd class="govuk-summary-list__value">
+                {{ data_item[1] }}
+            </dd>
+        </div>
+        {% endfor %}
+    </dl>
+
+    <a class="govuk-button" href="{{url_for('frontend.check', schema=schema, row=row)}}">View table</a>
+
+{% endblock %}
